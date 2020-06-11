@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FormatSchedule": {
+      "commandName": "Project",
+      "commandLineArgs": "c:\\baseballscheduler\\schedule.csv"
+    }
+  }
+}
