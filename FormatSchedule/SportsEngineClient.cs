@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
+using System.Configuration;
 
 namespace FormatSchedule
 {
@@ -13,10 +14,54 @@ namespace FormatSchedule
     {
         private string accessCode = "";
         private static readonly HttpClient client = new HttpClient();
-        private const string RefreshCode = "f3bdd675a2b653a9ed86f75f0ed85b1e";
-        private const string ClientId = "323ebd282804753dfa6a80f0f6e8a7a8";
-        private const string ClientSecret = "f4a87139576c37e8cc51ec67591484e2";
-        private const string ApiSiteId = "36327";
+        private string RefreshCode
+        {
+            get
+            {
+                if (refreshCode == string.Empty)
+                {
+                    refreshCode = ConfigurationManager.AppSettings["RefreshCode"];
+                }
+                return refreshCode;
+            }
+        }
+        private string refreshCode;
+        private string clientId;
+        private string clientSecret;
+        private string apiSiteId;
+        private string ClientId
+        { 
+             get
+            {
+                if (clientId == string.Empty)
+                {
+                    clientId = ConfigurationManager.AppSettings["ClientId"];
+                }
+                return clientId;
+            }
+        }
+        private string ClientSecret
+        {
+            get
+            {
+                if (clientSecret == string.Empty)
+                {
+                    clientSecret = ConfigurationManager.AppSettings["ClientSecret"];
+                }
+                return clientSecret;
+            }
+        }
+        private string ApiSiteId
+        {
+            get
+            {
+                if (apiSiteId == string.Empty)
+                {
+                    apiSiteId = ConfigurationManager.AppSettings["ApiSiteId"];
+                }
+                return apiSiteId;
+            }
+        }
 
 
         public SportsEngineController()
