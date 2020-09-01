@@ -45,7 +45,7 @@ namespace FormatSchedule
             int rowCount = last.Row;
             for (int i = 2; i <= rowCount; i++)
             {
-                excelObj.Range destRange;
+                
                 excelObj.Range sourceRange;
                 LeagueAthleticEvent leagueEvent = new LeagueAthleticEvent();
                 sourceRange = (excelObj.Range)sheet.Cells[i, 6];
@@ -69,6 +69,18 @@ namespace FormatSchedule
                 sourceRange = (excelObj.Range)sheet.Cells[i, 13];
                 leagueEvent.LeagueAthleticID = int.Parse(sourceRange.Value.ToString());
                 //type
+                sourceRange = (excelObj.Range)sheet.Cells[i, 10];
+                string status = "";
+                if (sourceRange.Value != null)
+                {
+                    status = sourceRange.Value;
+                }
+                if (status == "CANCELLED")
+                {
+                    CancelEvent(leagueEvent, eventDate);
+                    continue;
+                }
+
                 sourceRange = (excelObj.Range)sheet.Cells[i, 7];
                 leagueEvent.Status = "scheduled";
                 if (sourceRange.Value == null || sourceRange.Value.ToString() != "Game")
@@ -84,46 +96,31 @@ namespace FormatSchedule
                     if (sourceRange.Value == null)
                     {
                         //travel game
-                        leagueEvent.Title = "Travel-IHTT Home Game";
+                        leagueEvent.Title = "League Athletics Game";
                         leagueEvent.EventType = "game";
                         CreateEvent(leagueEvent);
                     }
                     else
                     { 
-                        string opponent = sourceRange.Value;
-                        destRange = (excelObj.Range)destination.Cells[i, 1];
+                        string opponentCode = sourceRange.Value;
+                        Team opponent = GetTeam(opponentCode);
+                        if (opponent == null)
+                        {
+                            continue;
+                        }
+                        leagueEvent.Team1 = team.TeamId;
+                        leagueEvent.Team2 = opponent.TeamId;
+                        leagueEvent.Team2PageNodeId = opponent.PageNodeId;
+                        leagueEvent.Title = "Game " + opponent.TeamCode + " at " + team.TeamCode;
+                        leagueEvent.EventType = "game";
+                        if (status == "CANCELLED")
+                        {
+                            CancelGame(leagueEvent, eventDate);
+                            continue;
+                        }
+                        //CreateGame(leagueEvent);
+                        CreateEvent(leagueEvent);
 
-                        destRange.NumberFormat = "m/d/yyyy";
-                        destRange.Value = eventDate;
-                        destRange = (excelObj.Range)destination.Cells[i, 2];
-
-                        destRange.NumberFormat = "hh:mm AM/PM";
-                        destRange.Value = startHour;
-                        destRange = (excelObj.Range)destination.Cells[i, 3];
-
-                        destRange.NumberFormat = "m/d/yyyy";
-                        destRange.Value = eventDate;
-                        destRange = (excelObj.Range)destination.Cells[i, 4];
-
-                        destRange.NumberFormat = "hh:mm AM/PM";
-                        destRange.Value = endHour;
-                        destRange = (excelObj.Range)destination.Cells[i, 13];
-
-                        destRange.Value = teamCode;
-                        destRange = (excelObj.Range)destination.Cells[i, 7];
-                        sourceRange = (excelObj.Range)sheet.Cells[i, 6];
-                        destRange.Value = sourceRange.Value;
-                        destRange = (excelObj.Range)destination.Cells[i, 11];
-                        sourceRange = (excelObj.Range)sheet.Cells[i, 7];
-                        destRange.Value = sourceRange.Value;
-                        destRange = (excelObj.Range)destination.Cells[i, 16];
-
-                        destRange.Value = opponent;
-                        //destination.Cells[i, 2] = sheet.Cells[i, 3];
-                        //destination.Cells[i, 3] = sheet.Cells[i, 2];
-                        //destination.Cells[i, 4] = sheet.Cells[i, 4];
-                        string dateString = DateTime.Now.ToString("yyyyMMdd");
-                        template.SaveCopyAs("c:\\BaseballScheduler\\schedule" + dateString + ".csv");
                     }
 
                 }
@@ -144,6 +141,53 @@ namespace FormatSchedule
             myExcel = null;
             Environment.Exit(0);
         }
+
+        private static void CancelEvent(LeagueAthleticEvent leagueEvent, DateTime eventDate)
+        {
+            if (eventDate == DateTime.Today)
+            {
+                leagueEvent.Status = "CANCELLED";
+                CreateEvent(leagueEvent);
+            }
+            else
+            {
+                string sportsEngineId;
+                var query = _context.Events.Where(e => e.LeagueAthleticsID == leagueEvent.LeagueAthleticID).FirstOrDefault<Event>();
+                if (query != null)
+                {
+                    sportsEngineId = query.SportsEngineID;
+                    sportsEngineId = _controller.CancelEvent(leagueEvent, sportsEngineId);
+                    _context.Events.Remove(query);
+                }
+
+                
+
+            }
+        }
+
+        private static void CancelGame(LeagueAthleticEvent leagueEvent, DateTime eventDate)
+        {
+            if (eventDate == DateTime.Today)
+            {
+                leagueEvent.Status = "CANCELLED";
+                CreateGame(leagueEvent);
+            }
+            else
+            {
+                string sportsEngineId;
+                var query = _context.Events.Where(e => e.LeagueAthleticsID == leagueEvent.LeagueAthleticID).FirstOrDefault<Event>();
+                if (query != null)
+                {
+                    sportsEngineId = query.SportsEngineID;
+                    sportsEngineId = _controller.CancelGame(sportsEngineId);
+                    _context.Events.Remove(query);
+                }
+
+
+
+            }
+        }
+
         static private void CreateEvent(LeagueAthleticEvent leagueEvent)
         {
             string json = "{\"event\":{" +
@@ -154,6 +198,17 @@ namespace FormatSchedule
                "\"event_type\":\"" + leagueEvent.EventType + "\"," +
                "\"status\":\"" + leagueEvent.Status + "\"," +
                "\"location\":\"" + leagueEvent.Location + "\"}}";
+            if (leagueEvent.Team2PageNodeId > 0)
+            {
+                json = "{\"event\":{" +
+               "\"title\": \"" + leagueEvent.Title + "\"," +
+               "\"page_node_ids\":[" + leagueEvent.PageNodeId.ToString() + "," + leagueEvent.Team2PageNodeId.ToString() + "]," +
+               "\"start_date_time\":\"" + leagueEvent.StartDateTime + "\"," +
+               "\"end_date_time\":\"" + leagueEvent.EndDateTime + "\"," +
+               "\"event_type\":\"" + leagueEvent.EventType + "\"," +
+               "\"status\":\"" + leagueEvent.Status + "\"," +
+               "\"location\":\"" + leagueEvent.Location + "\"}}";
+            }
             string sportsEngineId;
             var query = _context.Events.Where(e => e.LeagueAthleticsID == leagueEvent.LeagueAthleticID).FirstOrDefault<Event>();
             if (query == null)
@@ -170,6 +225,37 @@ namespace FormatSchedule
             {
                 sportsEngineId = query.SportsEngineID;
                 sportsEngineId = _controller.UpdateEvent(leagueEvent, sportsEngineId, json);
+            }
+        }
+
+        static private void CreateGame(LeagueAthleticEvent leagueEvent)
+        {
+            string json = "{\"game\":{" +
+               "\"team_1_id\": \"" + leagueEvent.Team1.ToString() + "\"," +
+               "\"team_2_id\":\"" + leagueEvent.Team2.ToString() + "\"," +
+               "\"start_date_time\":\"" + leagueEvent.StartDateTime + "\"," +
+               "\"end_date_time\":\"" + leagueEvent.EndDateTime + "\"," +
+               "\"subseason_id\":\"" + ConfigurationManager.AppSettings["InHouseSubseasonId"] + "\"," +
+               "\"sport_id\":\"" + ConfigurationManager.AppSettings["SportId"] + "\"," +
+               "\"status\":\"" + leagueEvent.Status + "\"," +
+               "\"team_1_is_home\":\"true\"," + 
+               "\"location\":\"" + leagueEvent.Location + "\"}}";
+            string sportsEngineId;
+            var query = _context.Events.Where(e => e.LeagueAthleticsID == leagueEvent.LeagueAthleticID).FirstOrDefault<Event>();
+            if (query == null)
+            {
+                sportsEngineId = _controller.CreateGame(json);
+                Event seEvent = new Event();
+                seEvent.SportsEngineID = sportsEngineId;
+                seEvent.LeagueAthleticsID = leagueEvent.LeagueAthleticID;
+                _context.Events.Add(seEvent);
+                _context.SaveChanges();
+
+            }
+            else
+            {
+                sportsEngineId = query.SportsEngineID;
+                sportsEngineId = _controller.UpdateGame(sportsEngineId, json);
             }
         }
 

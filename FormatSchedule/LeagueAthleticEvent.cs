@@ -13,6 +13,8 @@ namespace FormatSchedule
         [JsonProperty("page_node_ids")]
         public int PageNodeId { get; set; }
         [JsonProperty("start_date_time")]
+        public int Team2PageNodeId { get; set; }
+        [JsonProperty("start_date_time")]
         public string StartDateTime { get; set; }
         [JsonProperty("end_date_time")]
         public string EndDateTime { get; set; }
@@ -22,5 +24,9 @@ namespace FormatSchedule
         public int LeagueAthleticID { get; set; }
         public string EventType { get; set; }
         public string Status { get; set; }
+
+        public int Team1 { get; set; }
+        public int Team2 { get; set; }
+
     }
 }

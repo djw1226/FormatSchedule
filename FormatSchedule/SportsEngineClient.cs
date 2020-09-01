@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using System.Net;
+﻿using Newtonsoft.Json;
+using System.Configuration;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using Newtonsoft.Json;
-using System.Configuration;
 
 namespace FormatSchedule
 {
@@ -25,13 +20,13 @@ namespace FormatSchedule
                 return refreshCode;
             }
         }
-        private string refreshCode;
-        private string clientId;
-        private string clientSecret;
-        private string apiSiteId;
+        private string refreshCode = "";
+        private string clientId = "";
+        private string clientSecret = "";
+        private string apiSiteId = "";
         private string ClientId
-        { 
-             get
+        {
+            get
             {
                 if (clientId == string.Empty)
                 {
@@ -83,7 +78,7 @@ namespace FormatSchedule
         }
         public string CreateEvent(LeagueAthleticEvent leagueEvent, string json)
         {
-                   
+
 
             //string json = JsonConvert.SerializeObject(leagueEvent);
             string sportsEngineId;
@@ -101,8 +96,8 @@ namespace FormatSchedule
 
         public string UpdateEvent(LeagueAthleticEvent leagueEvent, string sportsEngineId, string json)
         {
-            
-           
+
+
             //string json = JsonConvert.SerializeObject(leagueEvent);
             string validId;
             string url = "https://api.sportngin.com/events/" + sportsEngineId;
@@ -113,6 +108,73 @@ namespace FormatSchedule
                 validId = response["id"];
                 return validId;
             }
+        }
+
+        public string CancelEvent(LeagueAthleticEvent leagueEvent, string sportsEngineId)
+        {
+
+
+            //string json = JsonConvert.SerializeObject(leagueEvent);
+            string validId;
+            string url = "https://api.sportngin.com/events/" + sportsEngineId;
+
+            HttpResponseMessage result = client.DeleteAsync(url).Result;
+            var response = JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
+            validId = response["id"];
+            return validId;
+
+
+
+
+
+        }
+
+        public string CreateGame(string json)
+        {
+
+
+            //string json = JsonConvert.SerializeObject(leagueEvent);
+            string sportsEngineId;
+            string url = "https://api.sportngin.com/games";
+            using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+            {
+                HttpResponseMessage result = client.PostAsync(url, content).Result;
+                var response = JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
+                sportsEngineId = response["id"];
+                return sportsEngineId;
+            }
+
+
+        }
+        public string UpdateGame(string sportsEngineId, string json)
+        {
+
+
+            //string json = JsonConvert.SerializeObject(leagueEvent);
+            string validId;
+            string url = "https://api.sportngin.com/games/" + sportsEngineId;
+            using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+            {
+                HttpResponseMessage result = client.PutAsync(url, content).Result;
+                var response = JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
+                validId = response["id"];
+                return validId;
+            }
+        }
+
+        public string CancelGame(string sportsEngineId)
+        {
+
+
+            //string json = JsonConvert.SerializeObject(leagueEvent);
+            string validId;
+            string url = "https://api.sportngin.com/games/" + sportsEngineId;
+
+            HttpResponseMessage result = client.DeleteAsync(url).Result;
+            var response = JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
+            validId = response["id"];
+            return validId;
+
 
 
 
